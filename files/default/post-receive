@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+if [ "$GIT_DIR" = "." ]; then
+  # The script has been called as a hook; chdir to the working copy
+  cd ..
+  GIT_DIR=.git
+  export GIT_DIR
+fi
+
+# try to obtain the usual system PATH
+if [ -f /etc/profile ]; then
+  PATH=$(source /etc/profile; echo $PATH)
+  export PATH
+fi
+
+# read the STDIN to detect if this push changed the current branch
+read oldrev newrev refname
+
+# abort if there's no update, or in case the branch is deleted
+[ -z "${newrev//0}" ] && exit
+
+branch=$(echo $refname | cut -d/ -f3)
+
+# check out the latest code into the working copy
+umask 002
+git checkout $branch
+git reset --hard
+
+if [ -z "${oldrev//0}" ]; then  
+  # init submodules
+  git submodule update --init
+fi
+
+# log timestamp
+echo "==== $(date) ===="
+
+echo "============================================================"
+echo "==== Deploy is about to start                           ===="
+echo "==== Running deploy/after_push script                   ===="
+echo "============================================================"
+# execute the deploy hook in background
+[ -x deploy/after_push ] && deploy/after_push $oldrev $newrev
