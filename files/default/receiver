@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+# Ensure the app dir is fresh
+rm -rf /srv/app/*
+# Uncompres the repo archive
+cat | tar -x -C /srv/app
+# Invoke the deploy script
+/srv/app/deploy/deploy
+
+rc=$?
+if [[ $rc != 0 ]] ; then
+  rm -rf /srv/app/*
+  exit $rc
+fi
