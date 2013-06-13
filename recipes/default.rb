@@ -19,10 +19,19 @@
 
 package "git"
 
-users_manage "git" do
-    data_bag node[:git_deploy][:users_data_bag]
-    group_name "git"
-    group_id 3500
+git_user_info = data_bag_item(node[:git_deploy][:users_data_bag], "git")
+
+group "git" do
+    action :create
+end
+
+user "git" do
+    action :create
+    comment "Git deploy user"
+    gid "git"
+    home "/home/git"
+    shell "/usr/bin/git-shell"
+    supports :manage_home => true
 end
 
 sudo "git" do
@@ -31,29 +40,58 @@ sudo "git" do
     nopasswd true
 end
 
+directory "/home/git/.ssh" do
+    owner "git"
+    group "git"
+    mode 00755
+end
+
+template "/home/git/.ssh/authorized_keys" do
+    source "authorized_keys.erb"
+    owner "git"
+    group "git"
+    variables(:keys => git_user_info["ssh_keys"])
+    mode 00600
+end
+
+
 directory "/srv/git" do
     owner "git"
     group "git"
-    mode 0775
+    mode 00775
 end
 
 directory "/srv/git/#{node[:git_deploy][:repo]}.git" do
     owner "git"
     group "git"
-    mode 0775
+    mode 00775
     recursive true
+end
+
+directory "srv/app" do
+    owner "git"
+    group "git"
+    mode 00755
 end
 
 execute "create app GIT repo" do
     user "git"
     cwd "/srv/git/#{node[:git_deploy][:repo]}.git"
-    command "git init ; git config receive.denyCurrentBranch ignore"
+    command "git init --bare"
     not_if { File.exists? "/srv/git/#{node[:git_deploy][:repo]}.git/.git" }
 end
 
-cookbook_file "/srv/git/#{node[:git_deploy][:repo]}.git/.git/hooks/post-receive" do
-    source "post-receive"
+template "/srv/git/#{node[:git_deploy][:repo]}.git/hooks/pre-receive" do
+    source "pre-receive.erb"
     owner "git"
     group "git"
-    mode 0755
+    mode 00755
 end
+
+cookbook_file "/home/git/receiver" do
+    source "receiver"
+    owner "git"
+    group "git"
+    mode 00755
+end
+
