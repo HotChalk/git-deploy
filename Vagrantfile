@@ -70,11 +70,8 @@ Vagrant.configure("2") do |config|
   # to skip installing and copying to Vagrant's shelf.
   # config.berkshelf.except = []
   #
-  config.vm.provision :chef_client do |chef|
-    chef.chef_server_url = ENV["CHEF_SERVER_URL"]
-    chef.validation_key_path = "#{ENV['HOME']}/.chef/chef-validator.pem"
-    chef.file_cache_path     = "/tmp/chef/file_store"
-    chef.file_backup_path    = "/tmp/chef/cache"
+  config.vm.provision :chef_solo do |chef|
+    chef.data_bags_path = "data_bags"
 
     chef.run_list = [
         "recipe[git-deploy::default]"
