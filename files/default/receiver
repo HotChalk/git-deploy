@@ -5,7 +5,8 @@ rm -rf /srv/app/*
 # Uncompres the repo archive
 cat | tar -x -C /srv/app
 # Invoke the deploy script
-/srv/app/deploy/deploy
+cd /srv/app
+deploy/deploy
 
 rc=$?
 if [[ $rc != 0 ]] ; then
